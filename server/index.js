@@ -1,5 +1,6 @@
 import http from 'node:http';
 import { existsSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { load, getState } from './store.js';
 import { ingest, isRunning } from './ingest.js';
 import { hasKey, quota } from './youtube.js';
@@ -124,8 +125,14 @@ async function route(req, res) {
   return json(res, 404, { error: 'Not found' });
 }
 
-http.createServer((req, res) => route(req, res).catch((e) => { console.error(e); json(res, 500, { error: 'Internal error' }); }))
-  .listen(PORT, () => {
+// Shared by the local server below and the Vercel function in api/
+export function handle(req, res) {
+  return route(req, res).catch((e) => { console.error(e); json(res, 500, { error: 'Internal error' }); });
+}
+
+// Only listen when run directly (npm run api), not when imported by Vercel
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  http.createServer(handle).listen(PORT, () => {
     console.log('EduFlix API on http://localhost:' + PORT + ' (YouTube key ' + (hasKey() ? 'loaded' : 'MISSING') + ', ' + all().length + ' videos stored)');
     if (hasKey() && all().length === 0) {
       console.log('No videos stored yet, running first ingestion...');
@@ -133,5 +140,6 @@ http.createServer((req, res) => route(req, res).catch((e) => { console.error(e);
     }
   });
 
-// Refresh periodically (default every 12h): 6 queries x 100 units per run
-if (hasKey()) setInterval(() => ingest().catch(() => {}), (Number(process.env.INGEST_HOURS) || 12) * 3600000).unref();
+  // Refresh periodically (default every 12h): 6 queries x 100 units per run
+  if (hasKey()) setInterval(() => ingest().catch(() => {}), (Number(process.env.INGEST_HOURS) || 12) * 3600000).unref();
+}

@@ -86,3 +86,16 @@ and score at least `EDU_APPROVE_SCORE` (default 65). Quick check: `node server/c
 
 Security: the key lives only in the server process environment. Vite exposes only `VITE_*` variables to the
 browser, so `YOUTUBE_API_KEY` is never bundled. Never prefix it with `VITE_`, never commit `.env`.
+
+## Deploying to Vercel
+
+`api/[...path].js` serves the same API as a serverless function from `server/snapshot.json` (a secret-free copy of
+the ingested videos), and `vercel.json` adds the SPA fallback. No YouTube key is needed on Vercel.
+
+1. Refresh data locally when you want new videos: `npm run ingest 12` then `npm run snapshot`.
+2. Commit/deploy (the snapshot must be included; `server/.data/` is ignored).
+3. In Vercel project settings set `VITE_USE_MOCK_API=false` and leave `VITE_API_URL` empty, then redeploy
+   (Vite reads these at build time).
+
+Vercel's filesystem is read-only, so ingestion there is not persisted; for automatic refreshes host `server/`
+on a Node host with a disk (Render, Railway, Fly) and set `VITE_API_URL` to its URL.

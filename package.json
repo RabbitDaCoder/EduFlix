@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "api": "node server/index.js",
     "dev:all": "node server/dev.js",
-    "ingest": "node server/ingest-cli.js"
+    "ingest": "node server/ingest-cli.js",
+    "snapshot": "node server/snapshot.js"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.3",
